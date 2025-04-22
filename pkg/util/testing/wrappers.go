@@ -321,12 +321,12 @@ func (w *WorkloadWrapper) Conditions(conditions ...metav1.Condition) *WorkloadWr
 }
 
 func (w *WorkloadWrapper) ControllerReference(gvk schema.GroupVersionKind, name, uid string) *WorkloadWrapper {
-	appendOwnerReference(&w.Workload, gvk, name, uid, ptr.To(true), ptr.To(true))
+	AppendOwnerReference(&w.Workload, gvk, name, uid, ptr.To(true), ptr.To(true))
 	return w
 }
 
 func (w *WorkloadWrapper) OwnerReference(gvk schema.GroupVersionKind, name, uid string) *WorkloadWrapper {
-	appendOwnerReference(&w.Workload, gvk, name, uid, nil, nil)
+	AppendOwnerReference(&w.Workload, gvk, name, uid, nil, nil)
 	return w
 }
 
@@ -810,7 +810,7 @@ func (c *ClusterQueueWrapper) ResourceGroup(flavors ...kueue.FlavorQuotas) *Clus
 }
 
 // AdmissionChecks replaces the queue additional checks
-func (c *ClusterQueueWrapper) AdmissionChecks(checks ...string) *ClusterQueueWrapper {
+func (c *ClusterQueueWrapper) AdmissionChecks(checks ...kueue.AdmissionCheckReference) *ClusterQueueWrapper {
 	c.Spec.AdmissionChecks = checks
 	return c
 }
@@ -1152,7 +1152,7 @@ type AdmissionCheckStrategyRuleWrapper struct {
 	kueue.AdmissionCheckStrategyRule
 }
 
-func MakeAdmissionCheckStrategyRule(name string, flavors ...kueue.ResourceFlavorReference) *AdmissionCheckStrategyRuleWrapper {
+func MakeAdmissionCheckStrategyRule(name kueue.AdmissionCheckReference, flavors ...kueue.ResourceFlavorReference) *AdmissionCheckStrategyRuleWrapper {
 	if len(flavors) == 0 {
 		flavors = make([]kueue.ResourceFlavorReference, 0)
 	}
@@ -1205,38 +1205,6 @@ func (ac *AdmissionCheckWrapper) Parameters(apigroup, kind, name string) *Admiss
 		Kind:     kind,
 		Name:     name,
 	}
-	return ac
-}
-
-func (ac *AdmissionCheckWrapper) SingleInstanceInClusterQueue(singleInstance bool, reason, message string, observedGeneration int64) *AdmissionCheckWrapper {
-	cond := metav1.Condition{
-		Type:               kueue.AdmissionChecksSingleInstanceInClusterQueue,
-		Status:             metav1.ConditionTrue,
-		Reason:             reason,
-		Message:            message,
-		ObservedGeneration: observedGeneration,
-	}
-	if !singleInstance {
-		cond.Status = metav1.ConditionFalse
-	}
-
-	apimeta.SetStatusCondition(&ac.Status.Conditions, cond)
-	return ac
-}
-
-func (ac *AdmissionCheckWrapper) ApplyToAllFlavors(applyToAllFlavors bool, reason, message string, observedGeneration int64) *AdmissionCheckWrapper {
-	cond := metav1.Condition{
-		Type:               kueue.FlavorIndependentAdmissionCheck,
-		Status:             metav1.ConditionTrue,
-		Reason:             reason,
-		Message:            message,
-		ObservedGeneration: observedGeneration,
-	}
-	if !applyToAllFlavors {
-		cond.Status = metav1.ConditionFalse
-	}
-
-	apimeta.SetStatusCondition(&ac.Status.Conditions, cond)
 	return ac
 }
 
@@ -1528,7 +1496,7 @@ func (w *PodTemplateWrapper) Toleration(toleration corev1.Toleration) *PodTempla
 }
 
 func (w *PodTemplateWrapper) ControllerReference(gvk schema.GroupVersionKind, name, uid string) *PodTemplateWrapper {
-	appendOwnerReference(&w.PodTemplate, gvk, name, uid, ptr.To(true), ptr.To(true))
+	AppendOwnerReference(&w.PodTemplate, gvk, name, uid, ptr.To(true), ptr.To(true))
 	return w
 }
 
@@ -1544,6 +1512,10 @@ func MakeNamespaceWrapper(name string) *NamespaceWrapper {
 			},
 		},
 	}
+}
+
+func (w *NamespaceWrapper) Clone() *NamespaceWrapper {
+	return &NamespaceWrapper{Namespace: *w.DeepCopy()}
 }
 
 func (w *NamespaceWrapper) Obj() *corev1.Namespace {
@@ -1563,7 +1535,7 @@ func (w *NamespaceWrapper) Label(k, v string) *NamespaceWrapper {
 	return w
 }
 
-func appendOwnerReference(obj client.Object, gvk schema.GroupVersionKind, name, uid string, controller, blockDeletion *bool) {
+func AppendOwnerReference(obj client.Object, gvk schema.GroupVersionKind, name, uid string, controller, blockDeletion *bool) {
 	obj.SetOwnerReferences(append(obj.GetOwnerReferences(), metav1.OwnerReference{
 		APIVersion:         gvk.GroupVersion().String(),
 		Kind:               gvk.Kind,

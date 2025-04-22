@@ -374,6 +374,24 @@ when this workloadPriorityClass should be used.</p>
 </tbody>
 </table>
 
+## `AdmissionCheckReference`     {#kueue-x-k8s-io-v1beta1-AdmissionCheckReference}
+    
+(Alias of `string`)
+
+**Appears in:**
+
+- [AdmissionCheckState](#kueue-x-k8s-io-v1beta1-AdmissionCheckState)
+
+- [AdmissionCheckStrategyRule](#kueue-x-k8s-io-v1beta1-AdmissionCheckStrategyRule)
+
+- [ClusterQueueSpec](#kueue-x-k8s-io-v1beta1-ClusterQueueSpec)
+
+
+<p>AdmissionCheckReference is the name of an AdmissionCheck.</p>
+
+
+
+
 ## `AdmissionCheckSpec`     {#kueue-x-k8s-io-v1beta1-AdmissionCheckSpec}
     
 
@@ -434,7 +452,7 @@ check.</p>
     
   
 <tr><td><code>name</code> <B>[Required]</B><br/>
-<code>string</code>
+<a href="#kueue-x-k8s-io-v1beta1-AdmissionCheckReference"><code>AdmissionCheckReference</code></a>
 </td>
 <td>
    <p>name identifies the admission check.</p>
@@ -516,7 +534,7 @@ current state.</p>
     
   
 <tr><td><code>name</code> <B>[Required]</B><br/>
-<code>string</code>
+<a href="#kueue-x-k8s-io-v1beta1-AdmissionCheckReference"><code>AdmissionCheckReference</code></a>
 </td>
 <td>
    <p>name is an AdmissionCheck's name.</p>
@@ -879,7 +897,7 @@ before borrowing or preempting in the flavor being evaluated.</p>
    <span class="text-muted">No description provided.</span></td>
 </tr>
 <tr><td><code>admissionChecks</code><br/>
-<code>[]string</code>
+<a href="#kueue-x-k8s-io-v1beta1-AdmissionCheckReference"><code>[]AdmissionCheckReference</code></a>
 </td>
 <td>
    <p>admissionChecks lists the AdmissionChecks required by this ClusterQueue.
@@ -1087,8 +1105,8 @@ above nominal quota to the lendable resources in the
 Cohort, among all the resources provided by the Node, and
 divided by the weight.  If zero, it means that the usage of
 the Node is below the nominal quota.  If the Node has a
-weight of zero, this will return 9223372036854775807, the
-maximum possible share value.</p>
+weight of zero and is borrowing, this will return
+9223372036854775807, the maximum possible share value.</p>
 </td>
 </tr>
 </tbody>
@@ -1296,7 +1314,7 @@ have.</p>
 </td>
 </tr>
 <tr><td><code>topology</code><br/>
-<a href="#kueue-x-k8s-io-v1beta1-Topology"><code>Topology</code></a>
+<a href="#kueue-x-k8s-io-v1beta1-TopologyInfo"><code>TopologyInfo</code></a>
 </td>
 <td>
    <p>topology is the topology that associated with this ResourceFlavor.</p>
@@ -2392,37 +2410,6 @@ words, it's the used quota that is over the nominalQuota.</p>
 
 
 
-## `Topology`     {#kueue-x-k8s-io-v1beta1-Topology}
-    
-
-**Appears in:**
-
-- [LocalQueueFlavorStatus](#kueue-x-k8s-io-v1beta1-LocalQueueFlavorStatus)
-
-
-
-<table class="table">
-<thead><tr><th width="30%">Field</th><th>Description</th></tr></thead>
-<tbody>
-    
-  
-<tr><td><code>name</code> <B>[Required]</B><br/>
-<a href="#kueue-x-k8s-io-v1beta1-TopologyReference"><code>TopologyReference</code></a>
-</td>
-<td>
-   <p>name is the name of the topology.</p>
-</td>
-</tr>
-<tr><td><code>levels</code> <B>[Required]</B><br/>
-<code>[]string</code>
-</td>
-<td>
-   <p>levels define the levels of topology.</p>
-</td>
-</tr>
-</tbody>
-</table>
-
 ## `TopologyAssignment`     {#kueue-x-k8s-io-v1beta1-TopologyAssignment}
     
 
@@ -2491,6 +2478,37 @@ domain indicated by the values field.</p>
 </tbody>
 </table>
 
+## `TopologyInfo`     {#kueue-x-k8s-io-v1beta1-TopologyInfo}
+    
+
+**Appears in:**
+
+- [LocalQueueFlavorStatus](#kueue-x-k8s-io-v1beta1-LocalQueueFlavorStatus)
+
+
+
+<table class="table">
+<thead><tr><th width="30%">Field</th><th>Description</th></tr></thead>
+<tbody>
+    
+  
+<tr><td><code>name</code> <B>[Required]</B><br/>
+<a href="#kueue-x-k8s-io-v1beta1-TopologyReference"><code>TopologyReference</code></a>
+</td>
+<td>
+   <p>name is the name of the topology.</p>
+</td>
+</tr>
+<tr><td><code>levels</code> <B>[Required]</B><br/>
+<code>[]string</code>
+</td>
+<td>
+   <p>levels define the levels of topology.</p>
+</td>
+</tr>
+</tbody>
+</table>
+
 ## `TopologyReference`     {#kueue-x-k8s-io-v1beta1-TopologyReference}
     
 (Alias of `string`)
@@ -2499,7 +2517,7 @@ domain indicated by the values field.</p>
 
 - [ResourceFlavorSpec](#kueue-x-k8s-io-v1beta1-ResourceFlavorSpec)
 
-- [Topology](#kueue-x-k8s-io-v1beta1-Topology)
+- [TopologyInfo](#kueue-x-k8s-io-v1beta1-TopologyInfo)
 
 
 <p>TopologyReference is the name of the Topology.</p>

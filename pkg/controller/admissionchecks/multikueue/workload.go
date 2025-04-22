@@ -72,7 +72,7 @@ type wlGroup struct {
 	local         *kueue.Workload
 	remotes       map[string]*kueue.Workload
 	remoteClients map[string]*remoteClient
-	acName        string
+	acName        kueue.AdmissionCheckReference
 	jobAdapter    jobframework.MultiKueueAdapter
 	controllerKey types.NamespacedName
 }
@@ -250,7 +250,7 @@ func (w *wlReconciler) updateACS(ctx context.Context, wl *kueue.Workload, acs *k
 	return w.client.Status().Patch(ctx, wlPatch, client.Apply, client.FieldOwner(kueue.MultiKueueControllerName), client.ForceOwnership)
 }
 
-func (w *wlReconciler) remoteClientsForAC(ctx context.Context, acName string) (map[string]*remoteClient, error) {
+func (w *wlReconciler) remoteClientsForAC(ctx context.Context, acName kueue.AdmissionCheckReference) (map[string]*remoteClient, error) {
 	cfg, err := w.helper.ConfigForAdmissionCheck(ctx, acName)
 	if err != nil {
 		return nil, err
@@ -286,11 +286,16 @@ func (w *wlReconciler) adapter(local *kueue.Workload) (jobframework.MultiKueueAd
 	if controller := metav1.GetControllerOf(local); controller != nil {
 		adapterKey := schema.FromAPIVersionAndKind(controller.APIVersion, controller.Kind).String()
 		return w.adapters[adapterKey], controller
+	} else if refs := local.GetOwnerReferences(); len(refs) > 0 {
+		// For workloads without a controller but with owner references,
+		// use the first owner reference to find the adapter. This supports composable workloads.
+		adapterKey := schema.FromAPIVersionAndKind(refs[0].APIVersion, refs[0].Kind).String()
+		return w.adapters[adapterKey], &refs[0]
 	}
 	return nil, nil
 }
 
-func (w *wlReconciler) readGroup(ctx context.Context, local *kueue.Workload, acName string, adapter jobframework.MultiKueueAdapter, controllerName string) (*wlGroup, error) {
+func (w *wlReconciler) readGroup(ctx context.Context, local *kueue.Workload, acName kueue.AdmissionCheckReference, adapter jobframework.MultiKueueAdapter, controllerName string) (*wlGroup, error) {
 	rClients, err := w.remoteClientsForAC(ctx, acName)
 	if err != nil {
 		return nil, fmt.Errorf("admission check %q: %w", acName, err)

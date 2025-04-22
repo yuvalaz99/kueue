@@ -48,28 +48,28 @@ var _ = ginkgo.Describe("TopologyAwareScheduling for LeaderWorkerSet", func() {
 		ns = util.CreateNamespaceFromPrefixWithLog(ctx, k8sClient, "e2e-tas-lws-")
 
 		topology = testing.MakeDefaultThreeLevelTopology("datacenter")
-		gomega.Expect(k8sClient.Create(ctx, topology)).Should(gomega.Succeed())
+		util.MustCreate(ctx, k8sClient, topology)
 
 		tasFlavor = testing.MakeResourceFlavor("tas-flavor").
 			NodeLabel(tasNodeGroupLabel, instanceType).
 			TopologyName(topology.Name).
 			Obj()
-		gomega.Expect(k8sClient.Create(ctx, tasFlavor)).Should(gomega.Succeed())
+		util.MustCreate(ctx, k8sClient, tasFlavor)
 
 		clusterQueue = testing.MakeClusterQueue("cluster-queue").
 			ResourceGroup(*testing.MakeFlavorQuotas("tas-flavor").Resource(extraResource, "8").Obj()).
 			Obj()
-		gomega.Expect(k8sClient.Create(ctx, clusterQueue)).Should(gomega.Succeed())
+		util.MustCreate(ctx, k8sClient, clusterQueue)
 		util.ExpectClusterQueuesToBeActive(ctx, k8sClient, clusterQueue)
 
 		localQueue = testing.MakeLocalQueue("test-queue", ns.Name).ClusterQueue("cluster-queue").Obj()
-		gomega.Expect(k8sClient.Create(ctx, localQueue)).Should(gomega.Succeed())
+		util.MustCreate(ctx, k8sClient, localQueue)
 		util.ExpectLocalQueuesToBeActive(ctx, k8sClient, localQueue)
 	})
 
 	ginkgo.AfterEach(func() {
-		gomega.Expect(util.DeleteNamespace(ctx, k8sClient, ns)).To(gomega.Succeed())
 		gomega.Expect(util.DeleteAllLeaderWorkerSetsInNamespace(ctx, k8sClient, ns)).To(gomega.Succeed())
+		gomega.Expect(util.DeleteNamespace(ctx, k8sClient, ns)).To(gomega.Succeed())
 		util.ExpectObjectToBeDeleted(ctx, k8sClient, clusterQueue, true)
 		util.ExpectObjectToBeDeleted(ctx, k8sClient, tasFlavor, true)
 		util.ExpectObjectToBeDeleted(ctx, k8sClient, topology, true)
@@ -116,7 +116,7 @@ var _ = ginkgo.Describe("TopologyAwareScheduling for LeaderWorkerSet", func() {
 				TerminationGracePeriod(1).
 				Obj()
 			ginkgo.By("Creating a LeaderWorkerSet", func() {
-				gomega.Expect(k8sClient.Create(ctx, lws)).To(gomega.Succeed())
+				util.MustCreate(ctx, k8sClient, lws)
 			})
 
 			ginkgo.By("Waiting for replicas is ready", func() {
@@ -153,15 +153,24 @@ var _ = ginkgo.Describe("TopologyAwareScheduling for LeaderWorkerSet", func() {
 					index := fmt.Sprintf("%s/%s", pod.Labels[leaderworkersetv1.GroupIndexLabelKey], pod.Labels[leaderworkersetv1.WorkerIndexLabelKey])
 					gotAssignment[index] = pod.Spec.NodeName
 				}
-				wantAssignment := map[string]string{
-					"0/0": "kind-worker",
-					"0/1": "kind-worker2",
-					"0/2": "kind-worker3",
-					"1/0": "kind-worker5",
-					"1/1": "kind-worker6",
-					"1/2": "kind-worker7",
-				}
-				gomega.Expect(gotAssignment).Should(gomega.BeComparableTo(wantAssignment))
+				gomega.Expect(gotAssignment).Should(gomega.Or(
+					gomega.BeComparableTo(map[string]string{
+						"0/0": "kind-worker",
+						"0/1": "kind-worker2",
+						"0/2": "kind-worker3",
+						"1/0": "kind-worker5",
+						"1/1": "kind-worker6",
+						"1/2": "kind-worker7",
+					}),
+					gomega.BeComparableTo(map[string]string{
+						"1/0": "kind-worker",
+						"1/1": "kind-worker2",
+						"1/2": "kind-worker3",
+						"0/0": "kind-worker5",
+						"0/1": "kind-worker6",
+						"0/2": "kind-worker7",
+					}),
+				))
 			})
 		},
 		)

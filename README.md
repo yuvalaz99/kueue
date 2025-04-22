@@ -52,12 +52,12 @@ Read the [overview](https://kueue.sigs.k8s.io/docs/overview/) and watch the Kueu
 
 ## Installation
 
-**Requires Kubernetes 1.25 or newer**.
+**Requires Kubernetes 1.29 or newer**.
 
 To install the latest release of Kueue in your cluster, run the following command:
 
 ```shell
-kubectl apply --server-side -f https://github.com/kubernetes-sigs/kueue/releases/download/v0.11.1/manifests.yaml
+kubectl apply --server-side -f https://github.com/kubernetes-sigs/kueue/releases/download/v0.11.3/manifests.yaml
 ```
 
 The controller runs in the `kueue-system` namespace.

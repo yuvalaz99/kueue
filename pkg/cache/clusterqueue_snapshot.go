@@ -17,6 +17,8 @@ limitations under the License.
 package cache
 
 import (
+	"iter"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/labels"
@@ -43,13 +45,13 @@ type ClusterQueueSnapshot struct {
 	// Aggregates AdmissionChecks from both .spec.AdmissionChecks and .spec.AdmissionCheckStrategy
 	// Sets hold ResourceFlavors to which an AdmissionCheck should apply.
 	// In case its empty, it means an AdmissionCheck should apply to all ResourceFlavor
-	AdmissionChecks map[string]sets.Set[kueue.ResourceFlavorReference]
+	AdmissionChecks map[kueue.AdmissionCheckReference]sets.Set[kueue.ResourceFlavorReference]
 	Status          metrics.ClusterQueueStatus
 	// AllocatableResourceGeneration will be increased when some admitted workloads are
 	// deleted, or the resource groups are changed.
 	AllocatableResourceGeneration int64
 
-	ResourceNode ResourceNode
+	ResourceNode resourceNode
 	hierarchy.ClusterQueue[*CohortSnapshot]
 
 	TASFlavors map[kueue.ResourceFlavorReference]*TASFlavorSnapshot
@@ -186,7 +188,7 @@ func (c *ClusterQueueSnapshot) fairWeight() *resource.Quantity {
 
 // The methods below implement hierarchicalResourceNode interface.
 
-func (c *ClusterQueueSnapshot) getResourceNode() ResourceNode {
+func (c *ClusterQueueSnapshot) getResourceNode() resourceNode {
 	return c.ResourceNode
 }
 
@@ -220,4 +222,17 @@ func (c *ClusterQueueSnapshot) FindTopologyAssignmentsForWorkload(
 
 func (c *ClusterQueueSnapshot) IsTASOnly() bool {
 	return c.tasOnly
+}
+
+// Returns all ancestors starting with parent and ending with root
+func (c *ClusterQueueSnapshot) PathParentToRoot() iter.Seq[*CohortSnapshot] {
+	return func(yield func(*CohortSnapshot) bool) {
+		a := c.Parent()
+		for a != nil {
+			if !yield(a) {
+				return
+			}
+			a = a.Parent()
+		}
+	}
 }

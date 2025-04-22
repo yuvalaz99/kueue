@@ -195,18 +195,18 @@ func (t *TopologyDomainRequests) TotalRequests() resources.Requests {
 	return t.SinglePodRequests.ScaledUp(int64(t.Count))
 }
 
-func (psr *PodSetResources) ScaledTo(newCount int32) *PodSetResources {
-	if psr.TopologyRequest != nil {
-		return psr
+func (p *PodSetResources) ScaledTo(newCount int32) *PodSetResources {
+	if p.TopologyRequest != nil {
+		return p
 	}
 	ret := &PodSetResources{
-		Name:     psr.Name,
-		Requests: maps.Clone(psr.Requests),
-		Count:    psr.Count,
-		Flavors:  maps.Clone(psr.Flavors),
+		Name:     p.Name,
+		Requests: maps.Clone(p.Requests),
+		Count:    p.Count,
+		Flavors:  maps.Clone(p.Flavors),
 	}
 
-	if psr.Count != 0 && psr.Count != newCount {
+	if p.Count != 0 && p.Count != newCount {
 		ret.Requests.Divide(int64(ret.Count))
 		ret.Requests.Mul(int64(newCount))
 		ret.Count = newCount
@@ -788,8 +788,7 @@ func IsActive(w *kueue.Workload) bool {
 // IsEvictedByDeactivation returns true if the workload is evicted by deactivation.
 func IsEvictedByDeactivation(w *kueue.Workload) bool {
 	cond := apimeta.FindStatusCondition(w.Status.Conditions, kueue.WorkloadEvicted)
-	return cond != nil && cond.Status == metav1.ConditionTrue &&
-		(strings.HasPrefix(cond.Reason, kueue.WorkloadDeactivated) || strings.HasPrefix(cond.Reason, kueue.WorkloadEvictedByDeactivation))
+	return cond != nil && cond.Status == metav1.ConditionTrue && strings.HasPrefix(cond.Reason, kueue.WorkloadDeactivated)
 }
 
 func IsEvictedByPodsReadyTimeout(w *kueue.Workload) (*metav1.Condition, bool) {
@@ -843,7 +842,7 @@ func RemoveFinalizer(ctx context.Context, c client.Client, wl *kueue.Workload) e
 
 // AdmissionChecksForWorkload returns AdmissionChecks that should be assigned to a specific Workload based on
 // ClusterQueue configuration and ResourceFlavors
-func AdmissionChecksForWorkload(log logr.Logger, wl *kueue.Workload, admissionChecks map[string]sets.Set[kueue.ResourceFlavorReference]) sets.Set[string] {
+func AdmissionChecksForWorkload(log logr.Logger, wl *kueue.Workload, admissionChecks map[kueue.AdmissionCheckReference]sets.Set[kueue.ResourceFlavorReference]) sets.Set[kueue.AdmissionCheckReference] {
 	// If all admissionChecks should be run for all flavors we don't need to wait for Workload's Admission to be set.
 	// This is also the case if admissionChecks are specified with ClusterQueue.Spec.AdmissionChecks instead of
 	// ClusterQueue.Spec.AdmissionCheckStrategy
@@ -872,7 +871,7 @@ func AdmissionChecksForWorkload(log logr.Logger, wl *kueue.Workload, admissionCh
 		}
 	}
 
-	acNames := sets.New[string]()
+	acNames := sets.New[kueue.AdmissionCheckReference]()
 	for acName, flavors := range admissionChecks {
 		if len(flavors) == 0 {
 			acNames.Insert(acName)
